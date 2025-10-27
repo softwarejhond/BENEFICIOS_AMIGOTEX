@@ -1,0 +1,22 @@
+[2025-10-20 19:39:10] Error fatal al enviar correo: Class "PHPMailer\PHPMailer\PHPMailer" not found
+[2025-10-20 19:40:48] Error fatal al enviar correo: Class "PHPMailer\PHPMailer\PHPMailer" not found
+[2025-10-20 19:42:49] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-20 20:46:41] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-20 20:49:17] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-20 20:51:26] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-20 20:58:23] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-20 21:53:32] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-21 10:44:45] Error al enviar correo: SMTP Error: The following recipients failed: JAVIER.VARGAS@EJEMPLO.COM: The mail server could not deliver mail to javier.vargas@ejemplo.com.  The
+account or domain may not exist, they may be blacklisted, or missing the
+proper dns entries.
+
+[2025-10-21 11:17:03] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-21 11:20:27] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-21 20:12:28] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-21 20:17:16] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-24 13:03:30] Error al enviar correo: SMTP Error: The following recipients failed: DOLORES@EJEMPLO.COM: The mail server could not deliver mail to dolores@ejemplo.com.  The account
+or domain may not exist, they may be blacklisted, or missing the proper dns
+entries.
+
+[2025-10-24 13:05:18] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-24 13:08:55] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
