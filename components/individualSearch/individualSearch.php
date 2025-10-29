@@ -41,6 +41,9 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         <button id="btnVerEntrega" class="btn bg-purple-dark text-white btn-sm me-2" type="button" style="border: 1px solid #fff; display: none;">
                             <i class="fas fa-eye"></i> Ver Entrega
                         </button>
+                        <button id="btnReenviarCorreo" class="btn bg-success text-white btn-sm me-2" type="button" style="border: 1px solid #fff; display: none;">
+                            <i class="fas fa-envelope"></i> Reenviar Correo
+                        </button>
                         <button id="btnConfirmarEntrega" class="btn bg-purple-dark text-white btn-sm me-2" type="button" style="border: 1px solid #fff;" <?php echo $disableConfirm ? 'disabled' : ''; ?>>
                             <i class="fas fa-gift"></i> Confirmar Entrega
                         </button>
@@ -231,51 +234,52 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         <div class="card-header bg-gradient-info text-white py-2">
                             <h6 class="mb-0"><i class="fas fa-user-friends me-2"></i>Información del Receptor</h6>
                         </div>
-                        <div class="card-body">
-                            <div class="row g-3 mb-3">
-                                <div class="col-12">
-                                    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center p-3 bg-light rounded-3 border-start border-4 border-primary">
-                                        <div class="d-flex align-items-center mb-3 mb-md-0 me-md-3">
-                                            <div class="flex-shrink-0 me-3">
-                                                <i class="fas fa-id-card text-primary fs-4"></i>
-                                            </div>
-                                            <div>
-                                                <small class="text-muted d-block">Documento</small>
-                                                <strong class="text-dark" id="modalRecipientNumber">-</strong>
-                                            </div>
+                        <div class="card-body d-flex flex-column gap-3">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="d-flex align-items-center p-3 bg-light rounded-3 border-start border-4 border-primary h-100">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="fas fa-id-card text-primary fs-4"></i>
                                         </div>
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0 me-3">
-                                                <i class="fas fa-user text-success fs-4"></i>
-                                            </div>
-                                            <div>
-                                                <small class="text-muted d-block">Nombre completo</small>
-                                                <strong class="text-dark" id="modalRecipientName">-</strong>
-                                            </div>
+                                        <div>
+                                            <small class="text-muted d-block">Documento</small>
+                                            <strong class="text-dark" id="modalRecipientNumber">-</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="d-flex align-items-center p-3 bg-light rounded-3 border-start border-4 border-success h-100">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="fas fa-user text-success fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted d-block">Nombre completo</small>
+                                            <strong class="text-dark" id="modalRecipientName">-</strong>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-12 text-center">
-                                    <button id="modalBtnShowCarta" class="btn bg-indigo-dark text-white px-4 py-2" style="display: none;">
-                                        <i class="fas fa-file-pdf me-2"></i>Ver Carta de Autorización
-                                    </button>
-                                </div>
+                            <div class="d-flex justify-content-center">
+                                <button id="modalBtnShowCarta" class="btn bg-indigo-dark text-white px-4 py-2" style="display: none;">
+                                    <i class="fas fa-file-pdf me-2"></i>Ver Carta de Autorización
+                                </button>
                             </div>
-                            <div id="modalRecipientMessages"></div>
+                            <div>
+                                <div id="modalRecipientMessages"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer bg-light border-top-0">
-                <div class="text-muted small w-100 text-center">
-                    <i class="fas fa-shield-alt me-1"></i>
-                    Información verificada y registrada en el sistema
-                </div>
+        </div>
+        <div class="modal-footer bg-light border-top-0">
+            <div class="text-muted small w-100 text-center">
+                <i class="fas fa-shield-alt me-1"></i>
+                Información verificada y registrada en el sistema
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <style>
@@ -320,6 +324,34 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
         border: none;
         border-radius: 12px;
         font-weight: 500;
+    }
+
+    .bg-warning-subtle {
+        background-color: #fff3cd !important;
+    }
+
+    .border-warning {
+        border-color: #ffc107 !important;
+        border-width: 2px !important;
+    }
+
+    /* Efecto de pulse para campos editables */
+    .border-warning {
+        animation: pulse-warning 2s infinite;
+    }
+
+    @keyframes pulse-warning {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+        }
     }
 </style>
 
@@ -366,8 +398,8 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     // Ocultar botón guardar inicialmente
                     document.getElementById('btnGuardar').style.display = 'none';
 
-                    // Inhabilitar botón de editar si data_update es 'SI'
-                    document.getElementById('btnEditar').disabled = (data.data.data_update === 'SI');
+                    // MANTENER SIEMPRE HABILITADO el botón de editar
+                    document.getElementById('btnEditar').disabled = false;
 
                     // Deshabilitar botón de confirmar entrega si data_update no es 'SI' o si ya tiene entrega
                     const btnConfirmar = document.getElementById('btnConfirmarEntrega');
@@ -377,6 +409,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     if (data.has_delivery) {
                         document.getElementById('btnConfirmarEntrega').style.display = 'none';
                         document.getElementById('btnVerEntrega').style.display = 'inline-block';
+                        document.getElementById('btnReenviarCorreo').style.display = 'inline-block';
 
                         // Llenar datos del modal
                         let date = new Date(data.delivery.reception_date);
@@ -385,10 +418,10 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         document.getElementById('modalDeliverySede').textContent = data.delivery.sede || 'N/A';
                         document.getElementById('modalDeliveryTipoEntrega').textContent = data.delivery.tipo_entrega || 'N/A';
                         document.getElementById('modalDeliverySignature').src = 'img/firmasRegalos/' + data.delivery.signature;
-                        document.getElementById('modalIdPhoto').src = 'uploads/idPhotos/' + data.delivery.id_photo; // Nueva foto
+                        document.getElementById('modalIdPhoto').src = 'uploads/idPhotos/' + data.delivery.id_photo;
 
+                        // Mostrar información del receptor cuando es diferente
                         if (data.delivery.recipient_number_id != data.data.number_id) {
-                            // Mostrar información del receptor cuando es diferente
                             document.getElementById('modalRecipientInfo').style.display = 'block';
                             document.getElementById('modalRecipientNumber').textContent = data.delivery.recipient_number_id;
                             document.getElementById('modalRecipientName').textContent = data.delivery.recipient_name || 'No registrado';
@@ -408,13 +441,13 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                                     } else {
                                         content = `<p>No se puede previsualizar el archivo. <a href="${filePath}" target="_blank">Descargar archivo</a></p>`;
                                     }
-                                    
+
                                     Swal.fire({
                                         title: 'Carta de Autorización',
                                         html: content,
                                         showCloseButton: true,
                                         showConfirmButton: false,
-                                        width: fileExtension === 'pdf' ? '60%' : 'auto'
+                                        width: fileExtension === 'pdf' ? '60%' : '50%'
                                     });
                                 };
                             } else {
@@ -457,6 +490,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     } else {
                         document.getElementById('btnConfirmarEntrega').style.display = 'inline-block';
                         document.getElementById('btnVerEntrega').style.display = 'none';
+                        document.getElementById('btnReenviarCorreo').style.display = 'none';
                     }
                 } else {
                     Swal.fire('Usuario no encontrado', data.message, 'error');
@@ -470,6 +504,47 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
 
     // Botón Editar
     document.getElementById('btnEditar').addEventListener('click', function() {
+        // Verificar si la persona ya tiene una entrega confirmada
+        if (window.hasDelivery) {
+            // Si tiene entrega, solo habilitar celular y email
+            Swal.fire({
+                title: 'Edición Limitada',
+                text: 'Esta persona ya tiene una entrega confirmada. Solo se pueden editar los datos de contacto.',
+                icon: 'info',
+                confirmButtonText: 'Continuar'
+            }).then(() => {
+                // Habilitar solo los campos de celular y email
+                const cellPhoneInput = document.getElementById('resultCellPhone');
+                const emailInput = document.getElementById('resultEmail');
+
+                // Remover readonly solo de estos campos
+                cellPhoneInput.removeAttribute('readonly');
+                emailInput.removeAttribute('readonly');
+
+                // Agregar clases para resaltar los campos editables
+                cellPhoneInput.classList.add('border-warning', 'bg-warning-subtle');
+                emailInput.classList.add('border-warning', 'bg-warning-subtle');
+
+                // Mostrar botón guardar
+                document.getElementById('btnGuardar').style.display = 'inline-block';
+
+                // Opcional: agregar un tooltip o mensaje visual
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'info',
+                    title: 'Solo se pueden editar celular y email'
+                });
+            });
+            return;
+        }
+
+        // Comportamiento original para personas sin entrega
         const enlace = 'https://app.mensajero.digital/form/1472/AwJBz3xdJ6';
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(enlace)}&size=200x200`;
 
@@ -497,7 +572,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                 });
             }
         }).then(() => {
-            // Después de OK, habilitar campos para edición
+            // Después de OK, habilitar campos para edición completa
             const inputs = document.querySelectorAll('#resultCard input');
             inputs.forEach(input => {
                 // Mantener deshabilitados los campos de número de ID, nombre, actualizado por y sede
@@ -521,7 +596,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
         return regex.test(email);
     }
 
-    // Botón Guardar
+    // Botón Guardar - Modificar para manejar edición limitada
     document.getElementById('btnGuardar').addEventListener('click', function() {
         const email = document.getElementById('resultEmail').value.trim();
         if (email && !isValidEmail(email)) {
@@ -531,7 +606,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
 
         const formData = new FormData();
         formData.append('number_id', document.getElementById('resultNumberId').value);
-        formData.append('original_number_id', document.getElementById('originalNumberId').value); // Usar original para WHERE
+        formData.append('original_number_id', document.getElementById('originalNumberId').value);
         formData.append('name', document.getElementById('resultName').value);
         formData.append('company_name', document.getElementById('resultCompany').value);
         formData.append('cell_phone', document.getElementById('resultCellPhone').value);
@@ -540,9 +615,12 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
         formData.append('city', document.getElementById('resultCity').value);
         formData.append('registration_date', document.getElementById('resultRegistrationDate').value);
         formData.append('gender', document.getElementById('resultGender').value);
-        formData.append('data_update', document.getElementById('resultDataUpdate').value); // Usar el valor seleccionado
+        formData.append('data_update', document.getElementById('resultDataUpdate').value);
         formData.append('updated_by', document.getElementById('resultUpdatedBy').value);
         formData.append('sede', document.getElementById('resultSede').value);
+
+        // Agregar flag para indicar si es edición limitada
+        formData.append('limited_edit', window.hasDelivery ? 'true' : 'false');
 
         fetch('components/individualSearch/updateData.php', {
                 method: 'POST',
@@ -552,41 +630,49 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             .then(data => {
                 if (data.success) {
                     Swal.fire('Éxito', 'Datos actualizados correctamente.', 'success');
+
                     // Actualizar original con el nuevo si cambió
                     document.getElementById('originalNumberId').value = document.getElementById('resultNumberId').value;
-                    // Volver a readonly/disabled
+
+                    // Volver a readonly/disabled todos los campos
                     const inputs = document.querySelectorAll('#resultCard input');
                     inputs.forEach(input => {
                         input.setAttribute('readonly', true);
+                        // Remover clases de resaltado
+                        input.classList.remove('border-warning', 'bg-warning-subtle');
                     });
+
                     const selects = document.querySelectorAll('#resultCard select');
                     selects.forEach(select => {
                         select.setAttribute('disabled', true);
                     });
+
                     document.getElementById('btnGuardar').style.display = 'none';
-                    // Actualizar el valor del select
-                    // Si es 'SI', deshabilitar btnEditar
-                    if (document.getElementById('resultDataUpdate').value === 'SI') {
-                        document.getElementById('btnEditar').disabled = true;
-                    }
-                    // Actualizar estado de btnConfirmarEntrega dinámicamente
-                    const btnConfirmar = document.getElementById('btnConfirmarEntrega');
-                    const dataUpdateValue = document.getElementById('resultDataUpdate').value;
-                    btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || (dataUpdateValue !== 'SI') || window.hasDelivery;
-                    // Mostrar notificación si se habilitó
-                    if (dataUpdateValue === 'SI' && !window.hasDelivery && !<?php echo $disableConfirm ? 'true' : 'false'; ?>) {
-                        // Opcional: mostrar un toast o alerta indicando que el botón está habilitado
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        });
-                        Toast.fire({
-                            icon: 'info',
-                            title: 'Datos actualizados ya puedes confirmar entrega'
-                        });
+
+                    // SIEMPRE mantener el botón Editar habilitado
+                    document.getElementById('btnEditar').disabled = false;
+
+                    // Solo para ediciones completas (sin entrega previa)
+                    if (!window.hasDelivery) {
+                        // Actualizar estado de btnConfirmarEntrega dinámicamente
+                        const btnConfirmar = document.getElementById('btnConfirmarEntrega');
+                        const dataUpdateValue = document.getElementById('resultDataUpdate').value;
+                        btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || (dataUpdateValue !== 'SI') || window.hasDelivery;
+
+                        // Mostrar notificación si se habilitó
+                        if (dataUpdateValue === 'SI' && !window.hasDelivery && !<?php echo $disableConfirm ? 'true' : 'false'; ?>) {
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                            Toast.fire({
+                                icon: 'info',
+                                title: 'Datos actualizados ya puedes confirmar entrega'
+                            });
+                        }
                     }
                 } else {
                     Swal.fire('Error', 'Error al actualizar: ' + data.message, 'error');
@@ -639,7 +725,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     <div class="mb-3">
                         <label for="photoFile" class="form-label fw-bold">Foto de identificación:</label>
                         <small class="text-muted d-block mb-2">Sube una foto del carnet del trabajo, cédula o rostro de la persona.</small>
-                        <input type="file" id="photoFile" class="form-control" accept="image/*" required>
+                        <input type="file" id="photoFile" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,image/*" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Firma de recepción:</label>
@@ -759,6 +845,68 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         Swal.fire('Error', data.message, 'error');
                     }
                 }, 800); // Ajusta el tiempo si lo deseas
+            }
+        });
+    });
+
+    // Botón Reenviar Correo
+    document.getElementById('btnReenviarCorreo').addEventListener('click', function() {
+        if (!window.hasDelivery) {
+            Swal.fire('Error', 'Esta persona no tiene una entrega registrada.', 'error');
+            return;
+        }
+
+        const userNumberId = document.getElementById('resultNumberId').value;
+        const userEmail = document.getElementById('resultEmail').value.trim();
+
+        // Validar que tenga email
+        if (!userEmail || !isValidEmail(userEmail)) {
+            Swal.fire('Error', 'La persona no tiene un correo electrónico válido registrado.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: '¿Reenviar Correo de Confirmación?',
+            text: `Se reenviará el correo de confirmación de entrega a: ${userEmail}`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, Reenviar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#28a745',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                const formData = new FormData();
+                formData.append('user_number_id', userNumberId);
+                formData.append('action', 'resend_email');
+
+                return fetch('components/individualSearch/resendEmail.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message);
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(
+                            `Error: ${error.message}`
+                        );
+                    });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const data = result.value;
+                if (data.success) {
+                    Swal.fire({
+                        title: '¡Correo Reenviado!',
+                        text: 'El correo de confirmación ha sido reenviado exitosamente.',
+                        icon: 'success',
+                        confirmButtonColor: '#28a745'
+                    });
+                }
             }
         });
     });

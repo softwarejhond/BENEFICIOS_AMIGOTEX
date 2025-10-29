@@ -20,3 +20,20 @@ entries.
 
 [2025-10-24 13:05:18] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
 [2025-10-24 13:08:55] Correo enviado exitosamente a JUANDIDOC11@GMAIL.COM
+[2025-10-28 15:48:12] Error al enviar correo: SMTP Error: The following recipients failed: ANTONIO@EJEMPLO.COM: The mail server could not deliver mail to antonio@ejemplo.com.  The account
+or domain may not exist, they may be blacklisted, or missing the proper dns
+entries.
+
+[2025-10-28 15:56:49] Error al enviar correo: SMTP Error: The following recipients failed: ELENA@EJEMPLO.COM: The mail server could not deliver mail to elena@ejemplo.com.  The account
+or domain may not exist, they may be blacklisted, or missing the proper dns
+entries.
+
+[2025-10-28 16:41:53] Error al enviar correo: SMTP Error: The following recipients failed: PEDRO@EJEMPLO.COM: The mail server could not deliver mail to pedro@ejemplo.com.  The account
+or domain may not exist, they may be blacklisted, or missing the proper dns
+entries.
+
+[2025-10-28 16:55:22] Error al enviar correo: SMTP Error: The following recipients failed: CARLOS@EJEMPLO.COM: The mail server could not deliver mail to carlos@ejemplo.com.  The account
+or domain may not exist, they may be blacklisted, or missing the proper dns
+entries.
+
+[2025-10-28 18:26:40] RESEND - Correo reenviado exitosamente a JUANDIDOC11@GMAIL.COM para usuario 44940890

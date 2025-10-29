@@ -28,20 +28,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             $updates = 0;
 
             foreach ($rows as $row) {
-                // Mapear columnas con validación para evitar errores si no existen
-                $number_id = (int)preg_replace('/\D/', '', $row[0]); // A - Eliminar caracteres no numéricos y convertir a entero
-                $name = strtoupper(trim($row[1])); // B - Convertir a UPPER
-                $company_name = strtoupper(trim($row[2])); // C - Convertir a UPPER
-                $cell_phone = strtoupper(trim($row[3])); // D - Convertir a UPPER
-                $email = strtoupper(trim($row[4])); // E - Convertir a UPPER
-                $address = strtoupper(trim($row[5])); // F - Convertir a UPPER
-                $city = strtoupper(trim($row[6])); // G - Convertir a UPPER
+                // Asegurar que el array tenga al menos 12 elementos (índices 0-11)
+                $row = array_pad($row, 12, '');
+                
+                // Mapear columnas con validación mejorada
+                $number_id = (int)preg_replace('/\D/', '', $row[0]); // A
+                $name = strtoupper(trim($row[1])); // B
+                $company_name = strtoupper(trim($row[2])); // C
+                $cell_phone = strtoupper(trim($row[3])); // D
+                $email = trim($row[4]); // E
+                $address = strtoupper(trim($row[5])); // F
+                $city = strtoupper(trim($row[6])); // G
                 $registration_date = date('Y-m-d', strtotime($row[7])); // H
-                $gender_raw = strtoupper(trim($row[8])); // I - Convertir a UPPER
+                $gender_raw = strtoupper(trim($row[8])); // I
                 $gender = ($gender_raw === 'F') ? 'MUJER' : (($gender_raw === 'M') ? 'HOMBRE' : 'OTRO');
-                $data_update = isset($row[9]) ? strtoupper(trim($row[9])) : ''; // J - Convertir a UPPER (SI/NO), con validación
-                $updated_by = isset($row[10]) ? strtoupper(trim($row[10])) : ''; // K - Convertir a UPPER
-                $sede = isset($row[11]) ? strtoupper(trim($row[11])) : ''; // L - Convertir a UPPER
+                $data_update = !empty(trim($row[9])) ? strtoupper(trim($row[9])) : ''; // J
+                $updated_by = !empty(trim($row[10])) ? strtoupper(trim($row[10])) : ''; // K
+                $sede = !empty(trim($row[11])) ? strtoupper(trim($row[11])) : ''; // L
+                
+                // Agregar debug temporal para verificar los valores
+                error_log("DEBUG Row - updated_by: '$updated_by', sede: '$sede'");
 
                 // Validar campos obligatorios
                 if (empty($number_id) || empty($name) || empty($gender)) {
