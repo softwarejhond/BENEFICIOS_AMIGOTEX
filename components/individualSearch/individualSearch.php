@@ -60,14 +60,22 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     <div class="container-fluid">
                         <!-- Primera fila: Número de ID (col-12 col-md-4) y Nombre (col-12 col-md-8) -->
                         <div class="row mb-4 p-2 bg-white rounded shadow-sm">
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-3">
+                                <label class="fw-bold text-teal-dark pb-2"><i class="fas fa-sync-alt"></i> Se actualizaron los datos:</label>
+                                <select id="resultDataUpdate" class="form-control border-teal-dark" disabled>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold text-teal-dark"><i class="fas fa-id-card"></i> Número de ID:</label>
                                 <input type="number" id="resultNumberId" class="form-control border-teal-dark" readonly>
                             </div>
-                            <div class="col-12 col-md-8">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold text-teal-dark"><i class="fas fa-user-tag"></i> Nombre:</label>
                                 <input type="text" id="resultName" class="form-control border-teal-dark" readonly>
                             </div>
+
                         </div>
                         <!-- Segunda fila: Celular, Email, Empresa (col-12 col-md-4 cada uno) -->
                         <div class="row mb-4 p-2 bg-white rounded shadow-sm">
@@ -109,18 +117,11 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         </div>
                         <!-- Última fila: Data Update, Updated By y Sede (col-12 col-md-4 cada uno) -->
                         <div class="row mb-2 justify-content-center p-2 bg-white rounded shadow-sm">
-                            <div class="col-12 col-md-4">
-                                <label class="fw-bold text-teal-dark"><i class="fas fa-sync-alt"></i> Se actualizaron los datos:</label>
-                                <select id="resultDataUpdate" class="form-control border-teal-dark" disabled>
-                                    <option value="SI">SI</option>
-                                    <option value="NO">NO</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <label class="fw-bold text-teal-dark"><i class="fas fa-user-edit"></i> Actualizado por:</label>
                                 <input type="text" id="resultUpdatedBy" class="form-control border-teal-dark" readonly>
                             </div>
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <label class="fw-bold text-teal-dark"><i class="fas fa-map-marker-alt"></i> Sede:</label>
                                 <input type="text" id="resultSede" class="form-control border-teal-dark" readonly>
                             </div>
@@ -353,6 +354,28 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
         }
     }
+
+    .pulse-yellow {
+        animation: pulse-yellow 2s infinite;
+        background-color: rgba(255, 255, 0, 0.1);
+        /* Fondo amarillo claro */
+        border-color: #ffc107 !important;
+        /* Borde amarillo */
+    }
+
+    @keyframes pulse-yellow {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 0, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(255, 255, 0, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 0, 0);
+        }
+    }
 </style>
 
 
@@ -389,6 +412,14 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     document.getElementById('resultRegistrationDate').value = data.data.registration_date;
                     document.getElementById('resultGender').value = data.data.gender;
                     document.getElementById('resultDataUpdate').value = data.data.data_update;
+                    // Agregar o remover clase de pulso según el valor
+                    const resultDataUpdateElement = document.getElementById('resultDataUpdate');
+                    if (data.data.data_update === 'NO') {
+                        resultDataUpdateElement.classList.add('pulse-yellow');
+                    } else {
+                        resultDataUpdateElement.classList.remove('pulse-yellow');
+                    }
+
                     document.getElementById('resultUpdatedBy').value = data.data.updated_by || 'N/A'; // Mostrar N/A si vacío
                     document.getElementById('resultSede').value = data.data.sede || 'N/A'; // Nuevo campo sede
                     // Guardar si tiene entrega
@@ -910,4 +941,5 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             }
         });
     });
+    
 </script>

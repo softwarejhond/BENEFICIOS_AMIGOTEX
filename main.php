@@ -30,10 +30,9 @@ $tipos_entrega = [];
 $sede_set = isset($_SESSION['sede']);
 $tipo_set = isset($_SESSION['tipo_entrega']);
 if ($rol == 'Asesor') {
-    $query = mysqli_query($conn, "SELECT sede1, sede2 FROM asesores_sedes WHERE username = '" . mysqli_real_escape_string($conn, $_SESSION['username']) . "'");
-    if ($row = mysqli_fetch_assoc($query)) {
-        if (!empty($row['sede1'])) $sedes[] = $row['sede1'];
-        if (!empty($row['sede2'])) $sedes[] = $row['sede2'];
+    $query = mysqli_query($conn, "SELECT nombre FROM sedes");
+    while ($row = mysqli_fetch_assoc($query)) {
+        if (!empty($row['nombre'])) $sedes[] = $row['nombre'];
     }
     // Obtener tipos de entrega
     $queryTipos = mysqli_query($conn, "SELECT nombre FROM tipos_entrega ORDER BY nombre");

@@ -37,3 +37,11 @@ or domain may not exist, they may be blacklisted, or missing the proper dns
 entries.
 
 [2025-10-28 18:26:40] RESEND - Correo reenviado exitosamente a JUANDIDOC11@GMAIL.COM para usuario 44940890
+[2025-10-29 14:54:00] RESEND - Error al reenviar correo: SMTP Error: The following recipients failed: SISTEMAS@AMIGOTEX.COM: No such person at this address."
+
+[2025-10-29 14:55:31] RESEND - Error al reenviar correo: SMTP Error: The following recipients failed: SISTEMAS@AMIGOTEX.COM: No such person at this address."
+
+[2025-10-29 15:00:28] RESEND - Correo reenviado exitosamente a JDZAPATAMAR@CESDE.NET para usuario 37929601
+[2025-11-05 11:49:58] Error al enviar correo: SMTP Error: Could not authenticate.
+[2025-11-05 11:51:34] Error al enviar correo: SMTP Error: Could not authenticate.
+[2025-11-05 14:10:08] Error al enviar correo: SMTP Error: Could not authenticate.
