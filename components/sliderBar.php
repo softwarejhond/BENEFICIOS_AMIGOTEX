@@ -130,6 +130,26 @@ require_once __DIR__ . '/../components/addUsers/swalAddUser.php';
                         </div>
                     <?php endif; ?>
 
+                    <?php if ($rol === 'Administrador' || $rol === 'Control maestro'): ?>
+                        <div class="col-4">
+                            <div class="checkbox"
+                                data-bs-toggle="popover"
+                                data-bs-trigger="hover focus"
+                                data-bs-placement="bottom"
+                                data-bs-content="Enviar mensaje SMS masivo">
+                                <a href="multipleSMS.php">
+                                    <label class="checkbox-wrapper">
+                                        <span class="checkbox-tile">
+                                            <span class="checkbox-icon checkbox-icon-lg" style="width: 75px; height: 100px;">
+                                                <img src="img/texte_logo.png" alt="CeduLink" style="width: 75px; height: 100px; object-fit: contain;">
+                                            </span>
+                                        </span>
+                                    </label>
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($rol === 'Control maestro'): ?>
                         <!-- <div class="col-4">
                             <div class="checkbox"

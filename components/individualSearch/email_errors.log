@@ -45,3 +45,5 @@ entries.
 [2025-11-05 11:49:58] Error al enviar correo: SMTP Error: Could not authenticate.
 [2025-11-05 11:51:34] Error al enviar correo: SMTP Error: Could not authenticate.
 [2025-11-05 14:10:08] Error al enviar correo: SMTP Error: Could not authenticate.
+[2025-11-10 10:31:47] Error al enviar correo: SMTP Error: Could not authenticate.
+[2025-11-10 10:34:08] RESEND - Error al reenviar correo: SMTP Error: Could not authenticate.
