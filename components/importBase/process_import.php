@@ -49,6 +49,21 @@ function isEmptyRow($row) {
     return true;
 }
 
+// Función para normalizar valores booleanos (SI/NO)
+function normalizeBoolean($value) {
+    $value = strtoupper(trim($value));
+    $siVariants = ['SI', 'SÍ', 'SI', 'SÍ', 'YES', 'S', 'TRUE', '1'];
+    $noVariants = ['NO', 'NO', 'N', 'FALSE', '0'];
+    
+    if (in_array($value, $siVariants)) {
+        return 'SI';
+    } elseif (in_array($value, $noVariants)) {
+        return 'NO';
+    } else {
+        return ''; // Dejar vacío si no coincide con ninguna variante
+    }
+}
+
 // Procesar el archivo si se envía
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
     $file = $_FILES['excel_file']['tmp_name'];
@@ -76,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                     continue; // Saltar filas vacías sin contarlas como error
                 }
 
-                $row = array_pad($row, 12, '');
+                $row = array_pad($row, 13, ''); // Actualizado a 13 columnas
 
                 $number_id = (int)preg_replace('/\D/', '', $row[0]);
                 $name = normalizeText($row[1]); // Aplicar normalización
@@ -85,12 +100,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                 $email = trim($row[4]);
                 $address = strtoupper(trim($row[5]));
                 $city = normalizeText($row[6]); // Usar la nueva función
-                $registration_date = date('Y-m-d', strtotime($row[7]));
-                $gender_raw = strtoupper(trim($row[8]));
+                $available_raw = strtoupper(trim($row[7]));
+                $available = ($available_raw === 'SI') ? 'SI' : 'NO'; // Validar y asignar
+                $registration_date = date('Y-m-d', strtotime($row[8]));
+                $gender_raw = strtoupper(trim($row[9]));
                 $gender = ($gender_raw === 'F') ? 'MUJER' : (($gender_raw === 'M') ? 'HOMBRE' : 'OTRO');
-                $data_update = !empty(trim($row[9])) ? strtoupper(trim($row[9])) : '';
-                $updated_by = !empty(trim($row[10])) ? strtoupper(trim($row[10])) : '';
-                $sede = !empty(trim($row[11])) ? strtoupper(trim($row[11])) : '';
+                $data_update = normalizeBoolean($row[10]); // Usar la nueva función para normalizar
+                $updated_by = !empty(trim($row[11])) ? strtoupper(trim($row[11])) : '';
+                $sede = !empty(trim($row[12])) ? strtoupper(trim($row[12])) : '';
 
                 // Validar campos obligatorios
                 if (empty($number_id) || empty($name) || ($gender === 'OTRO' && empty($gender_raw))) {
@@ -120,8 +137,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
 
                 if ($count > 0) {
                     // Actualizar
-                    $stmt = $conn->prepare("UPDATE gf_users SET name=?, company_name=?, cell_phone=?, email=?, address=?, city=?, registration_date=?, gender=?, data_update=?, updated_by=?, sede=? WHERE number_id=?");
-                    $stmt->bind_param("sssssssssssi", $name, $company_name, $cell_phone, $email, $address, $city, $registration_date, $gender, $data_update, $updated_by, $sede, $number_id);
+                    $stmt = $conn->prepare("UPDATE gf_users SET name=?, company_name=?, cell_phone=?, email=?, address=?, city=?, available=?, registration_date=?, gender=?, data_update=?, updated_by=?, sede=? WHERE number_id=?");
+                    $stmt->bind_param("sssssssssssssi", $name, $company_name, $cell_phone, $email, $address, $city, $available, $registration_date, $gender, $data_update, $updated_by, $sede, $number_id);
                     if ($stmt->execute()) {
                         $updates++;
                     } else {
@@ -129,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                     }
                 } else {
                     // Insertar
-                    $stmt = $conn->prepare("INSERT INTO gf_users (number_id, name, company_name, cell_phone, email, address, city, registration_date, gender, data_update, updated_by, sede) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("isssssssssss", $number_id, $name, $company_name, $cell_phone, $email, $address, $city, $registration_date, $gender, $data_update, $updated_by, $sede);
+                    $stmt = $conn->prepare("INSERT INTO gf_users (number_id, name, company_name, cell_phone, email, address, city, available, registration_date, gender, data_update, updated_by, sede) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("issssssssssss", $number_id, $name, $company_name, $cell_phone, $email, $address, $city, $available, $registration_date, $gender, $data_update, $updated_by, $sede);
                     if ($stmt->execute()) {
                         $inserts++;
                     } else {

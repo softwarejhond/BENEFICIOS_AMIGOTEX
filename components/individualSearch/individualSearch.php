@@ -61,6 +61,13 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         <!-- Primera fila: Número de ID (col-12 col-md-4) y Nombre (col-12 col-md-8) -->
                         <div class="row mb-4 p-2 bg-white rounded shadow-sm">
                             <div class="col-12 col-md-3">
+                                <label class="fw-bold text-teal-dark pb-2"><i class="bi bi-gift-fill"></i> Disponible para entrega:</label>
+                                <select id="resultAvailable" class="form-control border-teal-dark" disabled>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
                                 <label class="fw-bold text-teal-dark pb-2"><i class="fas fa-sync-alt"></i> Se actualizaron los datos:</label>
                                 <select id="resultDataUpdate" class="form-control border-teal-dark" disabled>
                                     <option value="SI">SI</option>
@@ -71,7 +78,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                                 <label class="form-label fw-bold text-teal-dark"><i class="fas fa-id-card"></i> Número de ID:</label>
                                 <input type="number" id="resultNumberId" class="form-control border-teal-dark" readonly>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold text-teal-dark"><i class="fas fa-user-tag"></i> Nombre:</label>
                                 <input type="text" id="resultName" class="form-control border-teal-dark" readonly>
                             </div>
@@ -376,6 +383,24 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             box-shadow: 0 0 0 0 rgba(255, 255, 0, 0);
         }
     }
+
+    .pulse-green {
+        animation: pulse-green 2s infinite;
+        background-color: rgba(0, 255, 0, 0.1); /* Fondo verde claro */
+        border-color: #28a745 !important; /* Borde verde */
+    }
+
+    @keyframes pulse-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
 </style>
 
 
@@ -412,12 +437,26 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     document.getElementById('resultRegistrationDate').value = data.data.registration_date;
                     document.getElementById('resultGender').value = data.data.gender;
                     document.getElementById('resultDataUpdate').value = data.data.data_update;
-                    // Agregar o remover clase de pulso según el valor
+                    // Agregar o remover clase de pulso según el valor para resultDataUpdate
                     const resultDataUpdateElement = document.getElementById('resultDataUpdate');
                     if (data.data.data_update === 'NO') {
                         resultDataUpdateElement.classList.add('pulse-yellow');
                     } else {
                         resultDataUpdateElement.classList.remove('pulse-yellow');
+                    }
+
+                    // Llenar resultAvailable con el valor de la base de datos
+                    document.getElementById('resultAvailable').value = data.data.available;
+                    // Agregar o remover clase de pulso según el valor para resultAvailable
+                    const resultAvailableElement = document.getElementById('resultAvailable');
+                    if (data.data.available === 'NO') {
+                        resultAvailableElement.classList.add('pulse-yellow');
+                        resultAvailableElement.classList.remove('pulse-green');
+                    } else if (data.data.available === 'SI') {
+                        resultAvailableElement.classList.add('pulse-green');
+                        resultAvailableElement.classList.remove('pulse-yellow');
+                    } else {
+                        resultAvailableElement.classList.remove('pulse-yellow', 'pulse-green');
                     }
 
                     document.getElementById('resultUpdatedBy').value = data.data.updated_by || 'N/A'; // Mostrar N/A si vacío
@@ -434,7 +473,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
 
                     // Deshabilitar botón de confirmar entrega si data_update no es 'SI' o si ya tiene entrega
                     const btnConfirmar = document.getElementById('btnConfirmarEntrega');
-                    btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || (data.data.data_update !== 'SI') || data.has_delivery;
+                    btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || (data.data.data_update !== 'SI' && data.data.data_update !== 'Sí') || data.has_delivery;
 
                     // Mostrar/ocultar botones según si tiene entrega
                     if (data.has_delivery) {
@@ -647,6 +686,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
         formData.append('registration_date', document.getElementById('resultRegistrationDate').value);
         formData.append('gender', document.getElementById('resultGender').value);
         formData.append('data_update', document.getElementById('resultDataUpdate').value);
+        formData.append('available', document.getElementById('resultAvailable').value); // Agregar available
         formData.append('updated_by', document.getElementById('resultUpdatedBy').value);
         formData.append('sede', document.getElementById('resultSede').value);
 
@@ -724,6 +764,19 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
     document.getElementById('btnConfirmarEntrega').addEventListener('click', function() {
         if (window.hasDelivery) {
             Swal.fire('Entrega ya registrada', 'Esta persona ya cuenta con un regalo entregado en este año.', 'warning');
+            return;
+        }
+
+        // Verificar si la persona está disponible para entrega
+        const availableValue = document.getElementById('resultAvailable').value;
+        if (availableValue === 'NO') {
+            Swal.fire({
+                title: 'No Disponible para Entrega',
+                text: 'Esta persona aún no ha sido registrada como disponible para la entrega de beneficios. Por favor, verifique su elegibilidad antes de proceder.',
+                icon: 'warning',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#ffc107'
+            });
             return;
         }
 
