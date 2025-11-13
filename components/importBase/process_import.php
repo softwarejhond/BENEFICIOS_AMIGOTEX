@@ -1,4 +1,10 @@
 <?php
+
+// Configuraciones de memoria y tiempo
+ini_set('memory_limit', '512M'); // Aumentar límite de memoria a 512MB
+ini_set('max_execution_time', 300); // Permitir 5 minutos de ejecución
+set_time_limit(300); // Backup del tiempo de ejecución
+
 // Desactivar display_errors para evitar output no deseado
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
@@ -15,6 +21,14 @@ include '../../controller/conexion.php';
 
 // Limpiar cualquier output previo
 ob_clean();
+
+// Función para escribir errores en el log
+function writeErrorToLog($message) {
+    $logFile = __DIR__ . '/import.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logEntry = "[$timestamp] $message" . PHP_EOL;
+    file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+}
 
 // Función para normalizar texto
 function normalizeText($text) {
@@ -69,6 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
     $file = $_FILES['excel_file']['tmp_name'];
     if (!empty($file)) {
         try {
+            // Escribir inicio de importación en log
+            writeErrorToLog("=== INICIO DE IMPORTACIÓN ===");
+            writeErrorToLog("Archivo procesado: " . $_FILES['excel_file']['name']);
+            
             $spreadsheet = IOFactory::load($file);
             $sheet = $spreadsheet->getActiveSheet();
             $rows = $sheet->toArray();
@@ -111,7 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
 
                 // Validar campos obligatorios
                 if (empty($number_id) || empty($name) || ($gender === 'OTRO' && empty($gender_raw))) {
-                    $errors[] = "Fila $rowNumber inválida: number_id=$number_id, name='$name', gender_raw='$gender_raw'";
+                    $errorMsg = "Fila $rowNumber inválida: number_id=$number_id, name='$name', gender_raw='$gender_raw'";
+                    $errors[] = $errorMsg;
+                    writeErrorToLog("ERROR VALIDACIÓN - $errorMsg");
                     continue;
                 }
 
@@ -124,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                 $checkDeliveryStmt->close();
 
                 if ($deliveryCount > 0) {
+                    writeErrorToLog("INFO - Fila $rowNumber: Usuario $number_id ya tiene entrega este año, omitido");
                     continue;
                 }
 
@@ -141,8 +162,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                     $stmt->bind_param("sssssssssssssi", $name, $company_name, $cell_phone, $email, $address, $city, $available, $registration_date, $gender, $data_update, $updated_by, $sede, $number_id);
                     if ($stmt->execute()) {
                         $updates++;
+                        writeErrorToLog("SUCCESS - Fila $rowNumber: Usuario $number_id actualizado correctamente");
                     } else {
-                        $errors[] = "Error al actualizar fila $rowNumber: " . $stmt->error;
+                        $errorMsg = "Error al actualizar fila $rowNumber: " . $stmt->error;
+                        $errors[] = $errorMsg;
+                        writeErrorToLog("ERROR UPDATE - $errorMsg");
                     }
                 } else {
                     // Insertar
@@ -150,12 +174,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                     $stmt->bind_param("issssssssssss", $number_id, $name, $company_name, $cell_phone, $email, $address, $city, $available, $registration_date, $gender, $data_update, $updated_by, $sede);
                     if ($stmt->execute()) {
                         $inserts++;
+                        writeErrorToLog("SUCCESS - Fila $rowNumber: Usuario $number_id insertado correctamente");
                     } else {
-                        $errors[] = "Error al insertar fila $rowNumber: " . $stmt->error;
+                        $errorMsg = "Error al insertar fila $rowNumber: " . $stmt->error;
+                        $errors[] = $errorMsg;
+                        writeErrorToLog("ERROR INSERT - $errorMsg");
                     }
                 }
                 $stmt->close();
             }
+
+            // Escribir resumen en log
+            writeErrorToLog("=== RESUMEN DE IMPORTACIÓN ===");
+            writeErrorToLog("Nuevos registros: $inserts");
+            writeErrorToLog("Registros actualizados: $updates");
+            writeErrorToLog("Filas vacías omitidas: $skippedRows");
+            writeErrorToLog("Total de errores: " . count($errors));
+            writeErrorToLog("=== FIN DE IMPORTACIÓN ===");
 
             // Cambiar la lógica del resultado final
             ob_clean();
@@ -185,12 +220,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             exit;
 
         } catch (Exception $e) {
+            $errorMsg = 'Error al procesar el archivo: ' . $e->getMessage();
+            writeErrorToLog("EXCEPCIÓN - $errorMsg");
+            
             ob_clean();
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Error al procesar el archivo: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => $errorMsg]);
             exit;
         }
     } else {
+        writeErrorToLog("ERROR - No se seleccionó un archivo");
+        
         ob_clean();
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'No se seleccionó un archivo.']);
@@ -199,6 +239,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
 }
 
 // Si no es una petición válida
+writeErrorToLog("ERROR - Petición no válida");
+
 ob_clean();
 header('Content-Type: application/json');
 echo json_encode(['success' => false, 'message' => 'Petición no válida.']);
