@@ -38,12 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $recipient_name = trim($_POST['recipient_name']);
     $signature = $_POST['signature']; // Base64 PNG
     $authorization_letter = isset($_POST['authorization_letter']) ? $_POST['authorization_letter'] : null;
-    $id_photo = isset($_FILES['id_photo']) ? $_FILES['id_photo'] : null; // Nuevo campo para la foto
-    $sede = $_SESSION['sede'] ?? ''; // Usar sede de la sesión
-    $tipo_entrega = $_SESSION['tipo_entrega'] ?? ''; // Nuevo: tipo de entrega de la sesión
-    $delivered_by = $_SESSION['username']; // Username de la sesión
+    $id_photo = isset($_FILES['id_photo']) ? $_FILES['id_photo'] : null;
+    $sede = $_SESSION['sede'] ?? '';
+    $tipo_entrega = $_SESSION['tipo_entrega'] ?? '';
+    $delivered_by = $_SESSION['username'];
 
-    // Validar campos obligatorios con mensajes específicos
+    // Validar campos obligatorios
     if (empty($user_number_id)) {
         ob_clean();
         echo json_encode(['success' => false, 'message' => 'ID de usuario faltante.']);
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!$id_photo || $id_photo['error'] !== UPLOAD_ERR_OK) {
         ob_clean();
-        echo json_encode(['success' => false, 'message' => 'Error con la foto de identificación. Error: ' . ($id_photo ? $id_photo['error'] : 'archivo no encontrado')]);
+        echo json_encode(['success' => false, 'message' => 'Error con la foto de identificación.']);
         exit;
     }
 
@@ -84,6 +84,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($recipient_name === 'undefined') {
         ob_clean();
         echo json_encode(['success' => false, 'message' => 'Nombre del receptor inválido.']);
+        exit;
+    }
+
+    // Verificar que no haya entrega previa del mismo tipo este año
+    $stmt_check_type = $conn->prepare("SELECT COUNT(*) FROM gf_gift_deliveries WHERE user_number_id = ? AND tipo_entrega = ? AND YEAR(reception_date) = YEAR(CURDATE())");
+    $stmt_check_type->bind_param("is", $user_number_id, $tipo_entrega);
+    $stmt_check_type->execute();
+    $stmt_check_type->bind_result($type_count);
+    $stmt_check_type->fetch();
+    $stmt_check_type->close();
+
+    if ($type_count > 0) {
+        ob_clean();
+        echo json_encode(['success' => false, 'message' => "Ya existe una entrega de tipo '$tipo_entrega' para esta persona en el año actual."]);
         exit;
     }
 
@@ -112,9 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $signatureData = str_replace('data:image/png;base64,', '', $signature);
         $signatureData = base64_decode($signatureData);
         $date = date('YmdHis');
-        $signatureFileName = "firma_{$user_number_id}_{$date}.png";
+        $signatureFileName = "firma_{$user_number_id}_{$tipo_entrega}_{$date}.png";
         file_put_contents("../../img/firmasRegalos/{$signatureFileName}", $signatureData);
-        $signaturePath = $signatureFileName; // Solo el nombre del archivo
+        $signaturePath = $signatureFileName;
     }
 
     // Manejar carta de autorización
@@ -127,14 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mkdir($uploadDir, 0777, true);
             }
             $date = date('YmdHis');
-            // Usar la extensión original del archivo subido en lugar de forzar .pdf
             $originalExtension = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $letterFileName = "carta_{$user_number_id}_{$date}.{$originalExtension}";
+            $letterFileName = "carta_{$user_number_id}_{$tipo_entrega}_{$date}.{$originalExtension}";
             move_uploaded_file($file['tmp_name'], "../../uploads/cartasAutorizacion/{$letterFileName}");
-            $letterPath = $letterFileName; // Solo el nombre del archivo
+            $letterPath = $letterFileName;
         } else {
             ob_clean();
-            echo json_encode(['success' => false, 'message' => 'Error al subir el archivo PDF.']);
+            echo json_encode(['success' => false, 'message' => 'Error al subir el archivo de autorización.']);
             exit;
         }
     }
@@ -147,21 +160,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir($uploadDir, 0777, true);
         }
         $date = date('YmdHis');
-        $photoFileName = "id_{$user_number_id}_{$date}." . pathinfo($id_photo['name'], PATHINFO_EXTENSION);
+        $photoFileName = "id_{$user_number_id}_{$tipo_entrega}_{$date}." . pathinfo($id_photo['name'], PATHINFO_EXTENSION);
         move_uploaded_file($id_photo['tmp_name'], "../../uploads/idPhotos/{$photoFileName}");
-        $photoPath = $photoFileName; // Solo el nombre del archivo
+        $photoPath = $photoFileName;
     } else {
         ob_clean();
         echo json_encode(['success' => false, 'message' => 'Error al subir la foto de identificación.']);
         exit;
     }
 
-    // Insertar en DB (agregar id_photo)
+    // Insertar en DB
     $stmt = $conn->prepare("INSERT INTO gf_gift_deliveries (user_number_id, recipient_number_id, recipient_name, signature, authorization_letter, sede, tipo_entrega, delivered_by, id_photo, reception_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     $stmt->bind_param("iisssssss", $user_number_id, $recipient_number_id, $recipient_name, $signaturePath, $letterPath, $sede, $tipo_entrega, $delivered_by, $photoPath);
     
     if ($stmt->execute()) {
-        error_log("Insert successful for user $user_number_id");
+        error_log("Insert successful for user $user_number_id, tipo: $tipo_entrega");
         
         $emailSent = false;
         $emailError = '';
@@ -177,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userEmail = $userData['email'];
             $userName = $userData['name'];
 
-            // Obtener el nombre del asesor (delivered_by)
+            // Obtener el nombre del asesor
             $asesorQuery = $conn->prepare("SELECT nombre FROM users WHERE username = ?");
             $asesorQuery->bind_param("s", $delivered_by);
             $asesorQuery->execute();
@@ -189,12 +202,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $asesorQuery->close();
 
-            // Fecha y hora actual
             $currentDateTime = date('Y-m-d H:i:s');
 
             // Solo intentar enviar correo si hay email válido
             if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-                // Preparar contenido del correo
                 $subject = "🎁 Regalo Entregado - Beneficios Amigotex";
                 $isSamePerson = ($recipient_number_id == $user_number_id);
                 $entregadoA = $isSamePerson ? 'usted mismo' : $recipient_name;
@@ -219,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p>¡Grandes noticias!</p>
                         <p>Queremos confirmarte que ya hemos hecho efectivo tu beneficio {$tipo_entrega} del Regalo de Navidad 2025.</p>
                         <p>Dicho Beneficio fue entregado a {$entregadoA} en la sede {$sede}, el día {$currentDateTime} por el(la) asesor(a) {$asesorName}.</p>
-                        <p>Este es un pequeno gesto para agradecerte por ser parte fundamental de nuestro fondo de empleados Amigotex. Tu esfuerzo y dedicación son los que hacen posible el éxito de nuestro Fondo.</p>
+                        <p>Este es un pequeño gesto para agradecerte por ser parte fundamental de nuestro fondo de empleados Amigotex. Tu esfuerzo y dedicación son los que hacen posible el éxito de nuestro Fondo.</p>
                         <p>Deseamos que lo disfrutes y que esta temporada esté llena de alegría, paz y momentos inolvidables para ti y tu familia.</p>
                         <p>¡Felices Fiestas!</p>
                         <div style='text-align: center; margin-top: 20px;'>
@@ -229,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$isSamePerson) {
                     $message .= "
                         <p>Esta persona ha sido autorizada por usted para recibir el regalo.</p>
-                        <p>{$recipient_name} con identificacion No. {$recipient_number_id}</p>";
+                        <p>{$recipient_name} con identificación No. {$recipient_number_id}</p>";
                 }
                 
                 $message .= "
@@ -243,9 +254,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </html>
                 ";
 
-                // Enviar correo usando PHPMailer
+                // Envío de correo usando PHPMailer
                 try {
-                    // Obtener configuración SMTP (id=1)
                     $smtpQuery = $conn->prepare("SELECT * FROM smtpconfig WHERE id = 1");
                     $smtpQuery->execute();
                     $smtpResult = $smtpQuery->get_result();
@@ -260,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $mail->SMTPAuth = true;
                         $mail->Username = $config['email'];
                         $mail->Password = $config['password'];
-                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // Cambio a SMTPS para puerto 465
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
                         $mail->Port = $config['port'];
                         $mail->Timeout = 60;
                         $mail->SMTPKeepAlive = true;
@@ -282,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $mail->send();
                         $emailSent = true;
-                        logError("Correo enviado exitosamente a $userEmail");
+                        logError("Correo enviado exitosamente a $userEmail para $tipo_entrega");
                     } else {
                         $emailError = "Configuración SMTP no encontrada";
                         logError($emailError);
@@ -322,6 +332,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(['success' => false, 'message' => 'Solicitud inválida.']);
 }
 
-// Asegurarse de que no haya más salida
 exit();
 ?>

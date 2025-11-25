@@ -7,7 +7,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 
-<div class="container-fluid">
+<div>
     <!-- Card de búsqueda -->
     <div class="row">
         <div class="col-12">
@@ -408,6 +408,8 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 
 <script>
+    let currentDeliveries = [];
+    
     document.getElementById('btnBuscar').addEventListener('click', function() {
         const numberId = document.getElementById('searchNumberId').value.trim();
         if (!numberId || isNaN(numberId)) {
@@ -427,7 +429,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                 if (data.success) {
                     // Llenar los campos
                     document.getElementById('resultNumberId').value = data.data.number_id;
-                    document.getElementById('originalNumberId').value = data.data.number_id; // Guardar original
+                    document.getElementById('originalNumberId').value = data.data.number_id;
                     document.getElementById('resultName').value = data.data.name;
                     document.getElementById('resultCompany').value = data.data.company_name;
                     document.getElementById('resultCellPhone').value = data.data.cell_phone;
@@ -437,7 +439,8 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     document.getElementById('resultRegistrationDate').value = data.data.registration_date;
                     document.getElementById('resultGender').value = data.data.gender;
                     document.getElementById('resultDataUpdate').value = data.data.data_update;
-                    // Agregar o remover clase de pulso según el valor para resultDataUpdate
+                    
+                    // Clases de pulso para data_update
                     const resultDataUpdateElement = document.getElementById('resultDataUpdate');
                     if (data.data.data_update === 'NO') {
                         resultDataUpdateElement.classList.add('pulse-yellow');
@@ -445,9 +448,9 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         resultDataUpdateElement.classList.remove('pulse-yellow');
                     }
 
-                    // Llenar resultAvailable con el valor de la base de datos
                     document.getElementById('resultAvailable').value = data.data.available;
-                    // Agregar o remover clase de pulso según el valor para resultAvailable
+                    
+                    // Clases de pulso para available
                     const resultAvailableElement = document.getElementById('resultAvailable');
                     if (data.data.available === 'NO') {
                         resultAvailableElement.classList.add('pulse-yellow');
@@ -459,106 +462,34 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                         resultAvailableElement.classList.remove('pulse-yellow', 'pulse-green');
                     }
 
-                    document.getElementById('resultUpdatedBy').value = data.data.updated_by || 'N/A'; // Mostrar N/A si vacío
-                    document.getElementById('resultSede').value = data.data.sede || 'N/A'; // Nuevo campo sede
-                    // Guardar si tiene entrega
-                    window.hasDelivery = data.has_delivery;
-                    window.deliveryData = data.delivery;
+                    document.getElementById('resultUpdatedBy').value = data.data.updated_by || 'N/A';
+                    document.getElementById('resultSede').value = data.data.sede || 'N/A';
+                    
+                    // Guardar entregas
+                    currentDeliveries = data.deliveries || [];
+                    window.hasDeliveries = data.has_deliveries;
+                    
                     document.getElementById('resultCard').style.display = 'block';
-                    // Ocultar botón guardar inicialmente
                     document.getElementById('btnGuardar').style.display = 'none';
-
-                    // MANTENER SIEMPRE HABILITADO el botón de editar
                     document.getElementById('btnEditar').disabled = false;
 
-                    // Deshabilitar botón de confirmar entrega si data_update no es 'SI' o si ya tiene entrega
+                    // Configurar botón de confirmar entrega
                     const btnConfirmar = document.getElementById('btnConfirmarEntrega');
-                    btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || (data.data.data_update !== 'SI' && data.data.data_update !== 'Sí') || data.has_delivery;
+                    // Solo permitir si no se ha entregado el tipo actual este año
+                    btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || 
+                        (data.data.data_update !== 'SI' && data.data.data_update !== 'Sí') || 
+                        !data.can_deliver_current_type;
 
-                    // Mostrar/ocultar botones según si tiene entrega
-                    if (data.has_delivery) {
-                        document.getElementById('btnConfirmarEntrega').style.display = 'none';
+                    // Configurar botones según entregas
+                    if (data.has_deliveries) {
                         document.getElementById('btnVerEntrega').style.display = 'inline-block';
                         document.getElementById('btnReenviarCorreo').style.display = 'inline-block';
-
-                        // Llenar datos del modal
-                        let date = new Date(data.delivery.reception_date);
-                        document.getElementById('modalDeliveryDate').textContent = date.toLocaleDateString('es-ES');
-                        document.getElementById('modalDeliveredBy').textContent = data.delivery.delivered_name || data.delivery.delivered_by;
-                        document.getElementById('modalDeliverySede').textContent = data.delivery.sede || 'N/A';
-                        document.getElementById('modalDeliveryTipoEntrega').textContent = data.delivery.tipo_entrega || 'N/A';
-                        document.getElementById('modalDeliverySignature').src = 'img/firmasRegalos/' + data.delivery.signature;
-                        document.getElementById('modalIdPhoto').src = 'uploads/idPhotos/' + data.delivery.id_photo;
-
-                        // Mostrar información del receptor cuando es diferente
-                        if (data.delivery.recipient_number_id != data.data.number_id) {
-                            document.getElementById('modalRecipientInfo').style.display = 'block';
-                            document.getElementById('modalRecipientNumber').textContent = data.delivery.recipient_number_id;
-                            document.getElementById('modalRecipientName').textContent = data.delivery.recipient_name || 'No registrado';
-
-                            if (data.delivery.authorization_letter && data.delivery.authorization_letter !== 'N/A') {
-                                document.getElementById('modalBtnShowCarta').style.display = 'inline-block';
-                                document.getElementById('modalBtnShowCarta').onclick = () => {
-                                    const filePath = `uploads/cartasAutorizacion/${data.delivery.authorization_letter}`;
-                                    const fileExtension = data.delivery.authorization_letter.split('.').pop().toLowerCase();
-                                    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                    let content;
-
-                                    if (fileExtension === 'pdf') {
-                                        content = `<iframe src="${filePath}" width="100%" height="500px" style="border:none;"></iframe>`;
-                                    } else if (imageExtensions.includes(fileExtension)) {
-                                        content = `<img src="${filePath}" style="max-width: 100%; height: auto;" alt="Carta de Autorización">`;
-                                    } else {
-                                        content = `<p>No se puede previsualizar el archivo. <a href="${filePath}" target="_blank">Descargar archivo</a></p>`;
-                                    }
-
-                                    Swal.fire({
-                                        title: 'Carta de Autorización',
-                                        html: content,
-                                        showCloseButton: true,
-                                        showConfirmButton: false,
-                                        width: fileExtension === 'pdf' ? '60%' : '50%'
-                                    });
-                                };
-                            } else {
-                                document.getElementById('modalBtnShowCarta').style.display = 'none';
-                            }
-
-                            // Limpiar mensajes previos
-                            document.getElementById('modalRecipientMessages').innerHTML = '';
-
-                            // Mostrar mensaje si el receptor es un usuario registrado
-                            if (data.recipient_is_user) {
-                                document.getElementById('modalRecipientMessages').innerHTML = `
-                                    <div class="alert alert-info d-flex align-items-center shadow-sm">
-                                        <div class="flex-shrink-0 me-3">
-                                            <i class="fas fa-user-check fs-3 text-info"></i>
-                                        </div>
-                                        <div>
-                                            <strong>Usuario Registrado</strong><br>
-                                            <small>Esta persona también es un asociado actualmente registrado en el sistema.</small>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        } else {
-                            // Mostrar mensaje de "misma persona"
-                            document.getElementById('modalRecipientInfo').style.display = 'block';
-                            document.getElementById('modalBtnShowCarta').style.display = 'none';
-                            document.getElementById('modalRecipientMessages').innerHTML = `
-                                <div class="alert alert-success d-flex align-items-center shadow-sm">
-                                    <div class="flex-shrink-0 me-3">
-                                        <i class="fas fa-user-check fs-3 text-success"></i>
-                                    </div>
-                                    <div>
-                                        <strong>Receptor Confirmado</strong><br>
-                                        <small>La misma persona registrada ha recibido su regalo directamente.</small>
-                                    </div>
-                                </div>
-                            `;
+                        
+                        // Si ya se entregó el tipo actual, ocultar botón
+                        if (!data.can_deliver_current_type) {
+                            document.getElementById('btnConfirmarEntrega').style.display = 'none';
                         }
                     } else {
-                        document.getElementById('btnConfirmarEntrega').style.display = 'inline-block';
                         document.getElementById('btnVerEntrega').style.display = 'none';
                         document.getElementById('btnReenviarCorreo').style.display = 'none';
                     }
@@ -572,207 +503,122 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             });
     });
 
-    // Botón Editar
-    document.getElementById('btnEditar').addEventListener('click', function() {
-        // Verificar si la persona ya tiene una entrega confirmada
-        if (window.hasDelivery) {
-            // Si tiene entrega, solo habilitar celular y email
-            Swal.fire({
-                title: 'Edición Limitada',
-                text: 'Esta persona ya tiene una entrega confirmada. Solo se pueden editar los datos de contacto.',
-                icon: 'info',
-                confirmButtonText: 'Continuar'
-            }).then(() => {
-                // Habilitar solo los campos de celular y email
-                const cellPhoneInput = document.getElementById('resultCellPhone');
-                const emailInput = document.getElementById('resultEmail');
-
-                // Remover readonly solo de estos campos
-                cellPhoneInput.removeAttribute('readonly');
-                emailInput.removeAttribute('readonly');
-
-                // Agregar clases para resaltar los campos editables
-                cellPhoneInput.classList.add('border-warning', 'bg-warning-subtle');
-                emailInput.classList.add('border-warning', 'bg-warning-subtle');
-
-                // Mostrar botón guardar
-                document.getElementById('btnGuardar').style.display = 'inline-block';
-
-                // Opcional: agregar un tooltip o mensaje visual
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 4000,
-                    timerProgressBar: true
-                });
-                Toast.fire({
-                    icon: 'info',
-                    title: 'Solo se pueden editar celular y email'
-                });
-            });
-            return;
-        }
-
-        // Comportamiento original para personas sin entrega
-        const enlace = 'https://app.mensajero.digital/form/1472/AwJBz3xdJ6';
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(enlace)}&size=200x200`;
-
-        Swal.fire({
-            title: 'Actualización de Datos Requerida',
-            html: `
-                <p>La persona debe completar el formulario de actualización en el siguiente enlace:</p>
-                <p><a href="${enlace}" target="_blank">${enlace}</a></p>
-                <button id="copyLinkBtn" class="btn btn-primary">Copiar Enlace</button>
-                <br><br>
-                <p><small>También puede escanear el QR:</small></p>
-                <img src="${qrUrl}" alt="QR Code" style="max-width: 200px; max-height: 200px;">
-                <div id="notification" style="margin-top: 10px;"></div>
-            `,
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
-            didOpen: () => {
-                document.getElementById('copyLinkBtn').addEventListener('click', () => {
-                    navigator.clipboard.writeText(enlace).then(() => {
-                        document.getElementById('notification').innerHTML = '<div class="alert alert-success">Enlace copiado al portapapeles</div>';
-                    }).catch(err => {
-                        console.error('Error al copiar: ', err);
-                        document.getElementById('notification').innerHTML = '<div class="alert alert-danger">Error al copiar enlace</div>';
-                    });
-                });
-            }
-        }).then(() => {
-            // Después de OK, habilitar campos para edición completa
-            const inputs = document.querySelectorAll('#resultCard input');
-            inputs.forEach(input => {
-                // Mantener deshabilitados los campos de número de ID, nombre, actualizado por y sede
-                if (input.id === 'resultNumberId' || input.id === 'resultName' || input.id === 'resultUpdatedBy' || input.id === 'resultSede') {
-                    input.setAttribute('readonly', true);
-                } else {
-                    input.removeAttribute('readonly');
-                }
-            });
-            const selects = document.querySelectorAll('#resultCard select');
-            selects.forEach(select => {
-                select.removeAttribute('disabled'); // Habilitar todos los selects, incluyendo resultDataUpdate
-            });
-            document.getElementById('btnGuardar').style.display = 'inline-block';
-        });
-    });
-
-    // Función para validar email
-    function isValidEmail(email) {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(email);
-    }
-
-    // Botón Guardar - Modificar para manejar edición limitada
-    document.getElementById('btnGuardar').addEventListener('click', function() {
-        const email = document.getElementById('resultEmail').value.trim();
-        if (email && !isValidEmail(email)) {
-            Swal.fire('Error', 'Correo electrónico inválido.', 'error');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('number_id', document.getElementById('resultNumberId').value);
-        formData.append('original_number_id', document.getElementById('originalNumberId').value);
-        formData.append('name', document.getElementById('resultName').value);
-        formData.append('company_name', document.getElementById('resultCompany').value);
-        formData.append('cell_phone', document.getElementById('resultCellPhone').value);
-        formData.append('email', document.getElementById('resultEmail').value);
-        formData.append('address', document.getElementById('resultAddress').value);
-        formData.append('city', document.getElementById('resultCity').value);
-        formData.append('registration_date', document.getElementById('resultRegistrationDate').value);
-        formData.append('gender', document.getElementById('resultGender').value);
-        formData.append('data_update', document.getElementById('resultDataUpdate').value);
-        formData.append('available', document.getElementById('resultAvailable').value); // Agregar available
-        formData.append('updated_by', document.getElementById('resultUpdatedBy').value);
-        formData.append('sede', document.getElementById('resultSede').value);
-
-        // Agregar flag para indicar si es edición limitada
-        formData.append('limited_edit', window.hasDelivery ? 'true' : 'false');
-
-        fetch('components/individualSearch/updateData.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Éxito', 'Datos actualizados correctamente.', 'success');
-
-                    // Actualizar original con el nuevo si cambió
-                    document.getElementById('originalNumberId').value = document.getElementById('resultNumberId').value;
-
-                    // Volver a readonly/disabled todos los campos
-                    const inputs = document.querySelectorAll('#resultCard input');
-                    inputs.forEach(input => {
-                        input.setAttribute('readonly', true);
-                        // Remover clases de resaltado
-                        input.classList.remove('border-warning', 'bg-warning-subtle');
-                    });
-
-                    const selects = document.querySelectorAll('#resultCard select');
-                    selects.forEach(select => {
-                        select.setAttribute('disabled', true);
-                    });
-
-                    document.getElementById('btnGuardar').style.display = 'none';
-
-                    // SIEMPRE mantener el botón Editar habilitado
-                    document.getElementById('btnEditar').disabled = false;
-
-                    // Solo para ediciones completas (sin entrega previa)
-                    if (!window.hasDelivery) {
-                        // Actualizar estado de btnConfirmarEntrega dinámicamente
-                        const btnConfirmar = document.getElementById('btnConfirmarEntrega');
-                        const dataUpdateValue = document.getElementById('resultDataUpdate').value;
-                        btnConfirmar.disabled = <?php echo $disableConfirm ? 'true' : 'false'; ?> || (dataUpdateValue !== 'SI') || window.hasDelivery;
-
-                        // Mostrar notificación si se habilitó
-                        if (dataUpdateValue === 'SI' && !window.hasDelivery && !<?php echo $disableConfirm ? 'true' : 'false'; ?>) {
-                            const Toast = Swal.mixin({
-                                toast: true,
-                                position: 'top-end',
-                                showConfirmButton: false,
-                                timer: 3000,
-                                timerProgressBar: true
-                            });
-                            Toast.fire({
-                                icon: 'info',
-                                title: 'Datos actualizados ya puedes confirmar entrega'
-                            });
-                        }
-                    }
-                } else {
-                    Swal.fire('Error', 'Error al actualizar: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                Swal.fire('Error', 'Error en la solicitud: ' + error.message, 'error');
-            });
-    });
-
-    // Botón Ver Entrega
+    // Botón Ver Entrega - Ahora muestra lista de entregas
     document.getElementById('btnVerEntrega').addEventListener('click', function() {
+        if (currentDeliveries.length === 0) {
+            Swal.fire('Info', 'No hay entregas registradas para esta persona.', 'info');
+            return;
+        }
+
+        if (currentDeliveries.length === 1) {
+            // Si solo hay una entrega, mostrar directamente
+            showDeliveryModal(currentDeliveries[0]);
+        } else {
+            // Si hay múltiples, mostrar selector
+            const deliveryOptions = currentDeliveries.map((delivery, index) => {
+                const date = new Date(delivery.reception_date);
+                const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                return `<option value="${index}">${delivery.tipo_entrega} - ${formattedDate}</option>`;
+            }).join('');
+
+            Swal.fire({
+                title: 'Seleccionar Entrega',
+                html: `
+                    <div class="mb-3">
+                        <label class="form-label">Seleccione la entrega que desea visualizar:</label>
+                        <select id="deliverySelector" class="form-select">
+                            ${deliveryOptions}
+                        </select>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Ver Entrega',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const selectedIndex = document.getElementById('deliverySelector').value;
+                    showDeliveryModal(currentDeliveries[selectedIndex]);
+                }
+            });
+        }
+    });
+
+    function showDeliveryModal(delivery) {
+        // Llenar datos del modal
+        let date = new Date(delivery.reception_date);
+        document.getElementById('modalDeliveryDate').textContent = date.toLocaleDateString('es-ES');
+        document.getElementById('modalDeliveredBy').textContent = delivery.delivered_name || delivery.delivered_by;
+        document.getElementById('modalDeliverySede').textContent = delivery.sede || 'N/A';
+        document.getElementById('modalDeliveryTipoEntrega').textContent = delivery.tipo_entrega || 'N/A';
+        document.getElementById('modalDeliverySignature').src = 'img/firmasRegalos/' + delivery.signature;
+        document.getElementById('modalIdPhoto').src = 'uploads/idPhotos/' + delivery.id_photo;
+
+        const userNumberId = document.getElementById('resultNumberId').value;
+        
+        // Configurar información del receptor
+        if (delivery.recipient_number_id != userNumberId) {
+            document.getElementById('modalRecipientInfo').style.display = 'block';
+            document.getElementById('modalRecipientNumber').textContent = delivery.recipient_number_id;
+            document.getElementById('modalRecipientName').textContent = delivery.recipient_name || 'No registrado';
+
+            if (delivery.authorization_letter && delivery.authorization_letter !== 'N/A') {
+                document.getElementById('modalBtnShowCarta').style.display = 'inline-block';
+                document.getElementById('modalBtnShowCarta').onclick = () => {
+                    const filePath = `uploads/cartasAutorizacion/${delivery.authorization_letter}`;
+                    const fileExtension = delivery.authorization_letter.split('.').pop().toLowerCase();
+                    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+                    let content;
+
+                    if (fileExtension === 'pdf') {
+                        content = `<iframe src="${filePath}" width="100%" height="500px" style="border:none;"></iframe>`;
+                    } else if (imageExtensions.includes(fileExtension)) {
+                        content = `<img src="${filePath}" style="max-width: 100%; height: auto;" alt="Carta de Autorización">`;
+                    } else {
+                        content = `<p>No se puede previsualizar el archivo. <a href="${filePath}" target="_blank">Descargar archivo</a></p>`;
+                    }
+
+                    Swal.fire({
+                        title: 'Carta de Autorización',
+                        html: content,
+                        showCloseButton: true,
+                        showConfirmButton: false,
+                        width: fileExtension === 'pdf' ? '60%' : '50%'
+                    });
+                };
+            } else {
+                document.getElementById('modalBtnShowCarta').style.display = 'none';
+            }
+
+            document.getElementById('modalRecipientMessages').innerHTML = '';
+        } else {
+            document.getElementById('modalRecipientInfo').style.display = 'block';
+            document.getElementById('modalBtnShowCarta').style.display = 'none';
+            document.getElementById('modalRecipientMessages').innerHTML = `
+                <div class="alert alert-success d-flex align-items-center shadow-sm">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-user-check fs-3 text-success"></i>
+                    </div>
+                    <div>
+                        <strong>Receptor Confirmado</strong><br>
+                        <small>La misma persona registrada ha recibido su regalo directamente.</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Mostrar modal
         const deliveryModal = new bootstrap.Modal(document.getElementById('deliveryModal'));
         deliveryModal.show();
-    });
+    }
 
     // Botón Confirmar Entrega
     document.getElementById('btnConfirmarEntrega').addEventListener('click', function() {
-        if (window.hasDelivery) {
-            Swal.fire('Entrega ya registrada', 'Esta persona ya cuenta con un regalo entregado en este año.', 'warning');
-            return;
-        }
-
-        // Verificar si la persona está disponible para entrega
+        // Verificar disponibilidad
         const availableValue = document.getElementById('resultAvailable').value;
         if (availableValue === 'NO') {
             Swal.fire({
                 title: 'No Disponible para Entrega',
-                text: 'Esta persona aún no ha sido registrada como disponible para la entrega de beneficios. Por favor, verifique su elegibilidad antes de proceder.',
+                text: 'Esta persona aún no ha sido registrada como disponible para la entrega de beneficios.',
                 icon: 'warning',
                 confirmButtonText: 'Entendido',
                 confirmButtonColor: '#ffc107'
@@ -821,9 +667,8 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             showCancelButton: true,
             confirmButtonText: 'Confirmar Entrega',
             cancelButtonText: 'Cancelar',
-            showLoaderOnConfirm: true, // Agregar loader mientras se confirma
+            showLoaderOnConfirm: true,
             didOpen: () => {
-                // Inicializar Signature Pad
                 const canvas = document.getElementById('signatureCanvas');
                 const signaturePad = new SignaturePad(canvas);
 
@@ -831,7 +676,6 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     signaturePad.clear();
                 });
 
-                // Mostrar/ocultar campos adicionales
                 document.getElementById('samePersonYes').addEventListener('change', () => {
                     document.getElementById('additionalFields').style.display = 'none';
                     document.getElementById('swalRecipientNumberId').required = false;
@@ -845,7 +689,6 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     document.getElementById('swalAuthorizationLetter').required = true;
                 });
 
-                // Guardar referencia para usar en preConfirm
                 window.signaturePad = signaturePad;
             },
             preConfirm: () => {
@@ -881,7 +724,6 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     return false;
                 }
 
-                // Dibujar fondo blanco en el canvas
                 const ctx = window.signaturePad.canvas.getContext('2d');
                 ctx.globalCompositeOperation = 'destination-over';
                 ctx.fillStyle = 'white';
@@ -895,7 +737,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                 formData.append('recipient_name', recipientName);
                 formData.append('signature', signatureDataURL);
                 formData.append('authorization_letter', authorizationLetter);
-                formData.append('id_photo', photoFile); // Cambiar de 'id_photo' a coincidir con PHP
+                formData.append('id_photo', photoFile);
 
                 return fetch('components/individualSearch/confirmDelivery.php', {
                         method: 'POST',
@@ -904,12 +746,9 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     .then(response => response.json());
             }
         }).then((result) => {
-            console.log('Result:', result);
             if (result.isConfirmed) {
                 const data = result.value;
-                console.log('Data:', data);
 
-                // Mostrar loader mientras se procesa la respuesta
                 Swal.fire({
                     title: 'Procesando...',
                     html: 'Por favor espera mientras se confirma la entrega.',
@@ -919,7 +758,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     }
                 });
 
-                setTimeout(() => { // Simula el delay, puedes quitar el setTimeout si no lo necesitas
+                setTimeout(() => {
                     if (data.success) {
                         Swal.fire('Éxito', 'Entrega confirmada correctamente.', 'success')
                             .then(() => {
@@ -928,15 +767,15 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                     } else {
                         Swal.fire('Error', data.message, 'error');
                     }
-                }, 800); // Ajusta el tiempo si lo deseas
+                }, 800);
             }
         });
     });
 
-    // Botón Reenviar Correo
+    // Botón Reenviar Correo - Modificado para seleccionar entrega
     document.getElementById('btnReenviarCorreo').addEventListener('click', function() {
-        if (!window.hasDelivery) {
-            Swal.fire('Error', 'Esta persona no tiene una entrega registrada.', 'error');
+        if (!window.hasDeliveries || currentDeliveries.length === 0) {
+            Swal.fire('Error', 'Esta persona no tiene entregas registradas.', 'error');
             return;
         }
 
@@ -949,9 +788,59 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             return;
         }
 
+        // Si solo hay una entrega, proceder directamente
+        if (currentDeliveries.length === 1) {
+            confirmResendEmail(userNumberId, userEmail, currentDeliveries[0]);
+        } else {
+            // Si hay múltiples entregas, mostrar selector
+            const deliveryOptions = currentDeliveries.map((delivery, index) => {
+                const date = new Date(delivery.reception_date);
+                const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                return `<option value="${delivery.id}">${delivery.tipo_entrega} - ${formattedDate}</option>`;
+            }).join('');
+
+            Swal.fire({
+                title: 'Seleccionar Entrega para Reenvío',
+                html: `
+                    <div class="mb-3">
+                        <label class="form-label">Seleccione la entrega cuyo correo desea reenviar:</label>
+                        <select id="deliverySelectorResend" class="form-select">
+                            ${deliveryOptions}
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-envelope me-2"></i>
+                        Se reenviará el correo a: <strong>${userEmail}</strong>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Reenviar Correo',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#28a745'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const selectedDeliveryId = document.getElementById('deliverySelectorResend').value;
+                    const selectedDelivery = currentDeliveries.find(d => d.id == selectedDeliveryId);
+                    confirmResendEmail(userNumberId, userEmail, selectedDelivery);
+                }
+            });
+        }
+    });
+
+    function confirmResendEmail(userNumberId, userEmail, delivery) {
+        const date = new Date(delivery.reception_date);
+        const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        
         Swal.fire({
             title: '¿Reenviar Correo de Confirmación?',
-            text: `Se reenviará el correo de confirmación de entrega a: ${userEmail}`,
+            html: `
+                <p>Se reenviará el correo de confirmación de entrega:</p>
+                <div class="alert alert-light border">
+                    <strong>Tipo:</strong> ${delivery.tipo_entrega}<br>
+                    <strong>Fecha:</strong> ${formattedDate}<br>
+                    <strong>Destinatario:</strong> ${userEmail}
+                </div>
+            `,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Sí, Reenviar',
@@ -961,6 +850,7 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
             preConfirm: () => {
                 const formData = new FormData();
                 formData.append('user_number_id', userNumberId);
+                formData.append('delivery_id', delivery.id);
                 formData.append('action', 'resend_email');
 
                 return fetch('components/individualSearch/resendEmail.php', {
@@ -986,13 +876,25 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
                 if (data.success) {
                     Swal.fire({
                         title: '¡Correo Reenviado!',
-                        text: 'El correo de confirmación ha sido reenviado exitosamente.',
+                        html: `
+                            <p>El correo de confirmación ha sido reenviado exitosamente.</p>
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Entrega:</strong> ${delivery.tipo_entrega}<br>
+                                <strong>Enviado a:</strong> ${userEmail}
+                            </div>
+                        `,
                         icon: 'success',
                         confirmButtonColor: '#28a745'
                     });
                 }
             }
         });
-    });
+    }
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
     
 </script>

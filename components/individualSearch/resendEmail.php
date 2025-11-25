@@ -34,6 +34,7 @@ function logError($message) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'resend_email') {
     $user_number_id = (int)$_POST['user_number_id'];
+    $delivery_id = isset($_POST['delivery_id']) ? (int)$_POST['delivery_id'] : null;
 
     if (empty($user_number_id)) {
         ob_clean();
@@ -41,22 +42,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    // Obtener datos del usuario y la entrega
-    $query = "SELECT 
-                u.email, u.name, 
-                d.recipient_number_id, d.recipient_name, d.sede, d.tipo_entrega, d.delivered_by, d.reception_date
-              FROM gf_users u 
-              INNER JOIN gf_gift_deliveries d ON u.number_id = d.user_number_id 
-              WHERE u.number_id = ? AND YEAR(d.reception_date) = YEAR(CURDATE())";
+    // Construir la consulta según si se especifica un delivery_id
+    if ($delivery_id) {
+        $query = "SELECT 
+                    u.email, u.name, 
+                    d.recipient_number_id, d.recipient_name, d.sede, d.tipo_entrega, d.delivered_by, d.reception_date
+                  FROM gf_users u 
+                  INNER JOIN gf_gift_deliveries d ON u.number_id = d.user_number_id 
+                  WHERE u.number_id = ? AND d.id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("ii", $user_number_id, $delivery_id);
+    } else {
+        // Si no se especifica delivery_id, tomar la más reciente
+        $query = "SELECT 
+                    u.email, u.name, 
+                    d.recipient_number_id, d.recipient_name, d.sede, d.tipo_entrega, d.delivered_by, d.reception_date
+                  FROM gf_users u 
+                  INNER JOIN gf_gift_deliveries d ON u.number_id = d.user_number_id 
+                  WHERE u.number_id = ? AND YEAR(d.reception_date) = YEAR(CURDATE())
+                  ORDER BY d.reception_date DESC
+                  LIMIT 1";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("i", $user_number_id);
+    }
     
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $user_number_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows === 0) {
         ob_clean();
-        echo json_encode(['success' => false, 'message' => 'No se encontró la entrega para este usuario.']);
+        echo json_encode(['success' => false, 'message' => 'No se encontró la entrega especificada para este usuario.']);
         exit;
     }
 
@@ -181,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             
             $mail->send();
             
-            logError("Correo reenviado exitosamente a $userEmail para usuario $user_number_id");
+            logError("Correo reenviado exitosamente a $userEmail para usuario $user_number_id (entrega: $tipoEntrega)");
             
             ob_clean();
             echo json_encode(['success' => true, 'message' => 'Correo reenviado exitosamente.']);

@@ -23,57 +23,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['number_id'])) {
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
 
-        // Verificar si ya tiene entrega este año
-        $stmt_check = $conn->prepare("SELECT COUNT(*) FROM gf_gift_deliveries WHERE user_number_id = ? AND YEAR(reception_date) = YEAR(CURDATE())");
-        $stmt_check->bind_param("i", $number_id);
-        $stmt_check->execute();
-        $stmt_check->bind_result($count);
-        $stmt_check->fetch();
-        $stmt_check->close();
-
-        $has_delivery = $count > 0;
-        $delivery_data = null;
-        $recipient_is_user = false;
-        $recipient_data = null;
-        if ($has_delivery) {
-            // Obtener datos de la entrega
-            $stmt_delivery = $conn->prepare("SELECT * FROM gf_gift_deliveries WHERE user_number_id = ? AND YEAR(reception_date) = YEAR(CURDATE()) LIMIT 1");
-            $stmt_delivery->bind_param("i", $number_id);
-            $stmt_delivery->execute();
-            $result_delivery = $stmt_delivery->get_result();
-            $delivery_data = $result_delivery->fetch_assoc();
-            $stmt_delivery->close();
-
-            // Obtener nombre del usuario que entregó
-            $stmt_delivered = $conn->prepare("SELECT nombre FROM users WHERE username = ?");
-            $stmt_delivered->bind_param("s", $delivery_data['delivered_by']);
-            $stmt_delivered->execute();
-            $stmt_delivered->bind_result($delivered_name);
-            $stmt_delivered->fetch();
-            $stmt_delivered->close();
-            $delivery_data['delivered_name'] = $delivered_name;
-
-            // Verificar si el receptor es un usuario registrado
-            if ($delivery_data['recipient_number_id'] != $number_id) {
-                $stmt_recipient = $conn->prepare("SELECT * FROM gf_users WHERE number_id = ?");
-                $stmt_recipient->bind_param("i", $delivery_data['recipient_number_id']);
-                $stmt_recipient->execute();
-                $result_recipient = $stmt_recipient->get_result();
-                if ($result_recipient->num_rows > 0) {
-                    $recipient_is_user = true;
-                    $recipient_data = $result_recipient->fetch_assoc();
-                }
-                $stmt_recipient->close();
-            }
+        // Verificar entregas de este año
+        $stmt_deliveries = $conn->prepare("SELECT d.*, u.nombre as delivered_name FROM gf_gift_deliveries d LEFT JOIN users u ON d.delivered_by = u.username WHERE d.user_number_id = ? AND YEAR(d.reception_date) = YEAR(CURDATE()) ORDER BY d.reception_date DESC");
+        $stmt_deliveries->bind_param("i", $number_id);
+        $stmt_deliveries->execute();
+        $result_deliveries = $stmt_deliveries->get_result();
+        
+        $deliveries = [];
+        $delivered_types = [];
+        while ($delivery = $result_deliveries->fetch_assoc()) {
+            $deliveries[] = $delivery;
+            $delivered_types[] = $delivery['tipo_entrega'];
         }
+        $stmt_deliveries->close();
+
+        $has_deliveries = count($deliveries) > 0;
+
+        // Verificar qué tipos ya fueron entregados
+        $current_delivery_type = $_SESSION['tipo_entrega'] ?? '';
+        $can_deliver_current_type = !in_array($current_delivery_type, $delivered_types);
 
         echo json_encode([
             'success' => true,
             'data' => $row,
-            'has_delivery' => $has_delivery,
-            'delivery' => $delivery_data,
-            'recipient_is_user' => $recipient_is_user,
-            'recipient_data' => $recipient_data
+            'has_deliveries' => $has_deliveries,
+            'deliveries' => $deliveries,
+            'delivered_types' => $delivered_types,
+            'can_deliver_current_type' => $can_deliver_current_type,
+            'current_delivery_type' => $current_delivery_type
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Usuario no encontrado.']);
