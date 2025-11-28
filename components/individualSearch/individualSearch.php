@@ -897,4 +897,71 @@ $disableConfirm = in_array($rol, ['Administrador', 'Control maestro']);
         return emailRegex.test(email);
     }
     
+    // Botón Editar
+    document.getElementById('btnEditar').addEventListener('click', function() {
+        // Verificar si la persona ya tiene una entrega confirmada
+        if (window.hasDelivery) {
+            // EDICIÓN LIMITADA - Solo celular y email
+            Swal.fire({
+                title: 'Edición Limitada',
+                text: 'Esta persona ya tiene una entrega confirmada. Solo se pueden editar los datos de contacto.',
+                icon: 'info',
+                confirmButtonText: 'Continuar'
+            }).then(() => {
+                // Habilitar solo celular y email
+                const cellPhoneInput = document.getElementById('resultCellPhone');
+                const emailInput = document.getElementById('resultEmail');
+                
+                cellPhoneInput.removeAttribute('readonly');
+                emailInput.removeAttribute('readonly');
+                
+                cellPhoneInput.classList.add('border-warning', 'bg-warning-subtle');
+                emailInput.classList.add('border-warning', 'bg-warning-subtle');
+                
+                document.getElementById('btnGuardar').style.display = 'inline-block';
+            });
+            return;
+        }
+
+        // EDICIÓN COMPLETA - Personas sin entrega
+        const enlace = 'https://app.mensajero.digital/form/1472/AwJBz3xdJ6';
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(enlace)}&size=200x200`;
+
+        Swal.fire({
+            title: 'Actualización de Datos Requerida',
+            html: `
+                <p>La persona debe completar el formulario de actualización en el siguiente enlace:</p>
+                <p><a href="${enlace}" target="_blank">${enlace}</a></p>
+                <button id="copyLinkBtn" class="btn btn-primary">Copiar Enlace</button>
+                <br><br>
+                <p><small>También puede escanear el QR:</small></p>
+                <img src="${qrUrl}" alt="QR Code" style="max-width: 200px; max-height: 200px;">
+            `,
+            confirmButtonText: 'OK',
+            didOpen: () => {
+                document.getElementById('copyLinkBtn').addEventListener('click', () => {
+                    navigator.clipboard.writeText(enlace).then(() => {
+                        document.getElementById('notification').innerHTML = '<div class="alert alert-success">Enlace copiado al portapapeles</div>';
+                    });
+                });
+            }
+        }).then(() => {
+            // Habilitar todos los campos editables
+            const inputs = document.querySelectorAll('#resultCard input');
+            inputs.forEach(input => {
+                if (input.id === 'resultNumberId' || input.id === 'resultName' || input.id === 'resultUpdatedBy' || input.id === 'resultSede') {
+                    input.setAttribute('readonly', true);
+                } else {
+                    input.removeAttribute('readonly');
+                }
+            });
+            
+            const selects = document.querySelectorAll('#resultCard select');
+            selects.forEach(select => {
+                select.removeAttribute('disabled');
+            });
+            
+            document.getElementById('btnGuardar').style.display = 'inline-block';
+        });
+    });
 </script>
